@@ -62,7 +62,7 @@ class AF_restserver extends WP_REST_Controller
 
   public function get_latest_post_permission()
   {
-    if (!current_user_can('edit_posts')) {
+    if (!current_user_can('read')) {
       return new WP_Error('rest_forbidden', 'Access forbidden', array('status' => 401));
     }
 
@@ -85,14 +85,9 @@ class AF_restserver extends WP_REST_Controller
     if (!$email) return wp_send_json_error('Invalid email', 400);
 
     register_new_user($email, $email);
-    return rest_ensure_response(new WP_REST_Response(
-        array(
-          'status' => 201,
-          'message' => "success",
-          'data' => ["message"=>"hello", "inside"=>[1,2,3]]
-          //,'body_response' => 
-        )
-        )
+    return new WP_REST_Response(
+        ['message' => "success"],
+        201
     );
 
     // $firstName = filter_var($payload["name"], FILTER_SANITIZE_STRING);

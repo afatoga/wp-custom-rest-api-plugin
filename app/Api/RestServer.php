@@ -57,19 +57,44 @@ class RestServer extends \WP_REST_Controller
     return true;
   }
 
-  public function af_get_items(\WP_REST_Request $request)
+  public function af_get_linklist(\WP_REST_Request $request)
   { 
     $linkController = new LinkController();
-    $res = "no";
     $payload = $request->get_params();
-    if (!$this->logged_in) {
-      if ($payload["currency"] === "czk") {
-        $res = $linkController->getLinks();
-      }
+    $currency = filter_var($payload["currency"], FILTER_SANITIZE_STRING);
+    
+    $currencyList = ["czk","usd","eur"];
+
+    if (!in_array($currency, $currencyList)) {
+        return new \WP_Error("rest_forbidden", "Currency not found",["status" => 404]);
     }
+
+    $linkList = $linkController->getLinkList($currency);
+    //var_dump($linkList);
     
     return new \WP_REST_Response(
-      ["message" => $res],
+      ["data" => $linkList],
+      200
+    );
+  }
+
+  public function af_get_productlist(\WP_REST_Request $request)
+  { 
+    $productController = new ProductController();
+    $payload = $request->get_params();
+    $currency = filter_var($payload["currency"], FILTER_SANITIZE_STRING);
+    
+    $currencyList = ["czk","usd","eur"];
+
+    if (!in_array($currency, $currencyList)) {
+        return new \WP_Error("rest_forbidden", "Currency not found",["status" => 404]);
+    }
+
+    $linkList = $productController->getProductList($this->logged_in, $currency);
+    //var_dump($linkList);
+    
+    return new \WP_REST_Response(
+      ["data" => $linkList],
       200
     );
   }

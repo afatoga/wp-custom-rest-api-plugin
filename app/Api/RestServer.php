@@ -26,52 +26,63 @@ class RestServer extends \WP_REST_Controller
     register_rest_route(
       $namespace,
       "/register",
-      array(
-        array(
+      [
+        [
           "methods"         => \WP_REST_Server::CREATABLE,
-          "callback"        => array($this, "af_register_new_user"),
+          "callback"        => [$this, "af_register_new_user"],
           "permission_callback" => "__return_true",
-        )
-      )
+        ]
+      ]
     );
     register_rest_route(
       $namespace,
-      "/get_items",
-      array(
-        array(
+      "/get_productlist",
+      [
+        [
           "methods"         => \WP_REST_Server::READABLE,
-          "callback"        => array($this, "af_get_items")
-          //,"permission_callback"   => array($this, "get_latest_post_permission")
-        ),
-      )
+          "callback"        => [$this, "af_get_productlist"],
+          "permission_callback"   => [$this, "af_is_user_logged_in"]
+        ],
+      ]
+    );
+    register_rest_route(
+      $namespace,
+      "/get_linklist",
+      [
+        [
+          "methods"         => \WP_REST_Server::READABLE,
+          "callback"        => [$this, "af_get_linklist"],
+          "permission_callback"   => [$this, "af_is_user_logged_in"]
+        ],
+      ]
     );
   }
 
-  public function get_latest_post_permission()
+  public function af_is_user_logged_in()
   {
-    if (!current_user_can("read")) {
-      return new \WP_Error("rest_forbidden", "Access forbidden", array("status" => 401));
+    if (!$this->logged_in) {
+      return true;
+      return new \WP_Error("rest_forbidden", "Access forbidden", ["status" => 401]);
     }
-
-    // This approach blocks the endpoint operation. You could alternatively do this by an un-blocking approach, by returning false here and changing the permissions check.
+    // !current_user_can("read")
     return true;
   }
 
   public function af_get_linklist(\WP_REST_Request $request)
-  { 
+  {
     $linkController = new LinkController();
     $payload = $request->get_params();
     $currency = filter_var($payload["currency"], FILTER_SANITIZE_STRING);
-    
-    $currencyList = ["czk","usd","eur"];
+
+    $currencyList = ["czk", "usd", "eur"];
 
     if (!in_array($currency, $currencyList)) {
-        return new \WP_Error("rest_forbidden", "Currency not found",["status" => 404]);
+      return new \WP_Error("rest_forbidden", "Currency not found", ["status" => 404]);
     }
 
     $linkList = $linkController->getLinkList($currency);
     //var_dump($linkList);
-    
+
     return new \WP_REST_Response(
       ["data" => $linkList],
       200
@@ -79,22 +90,22 @@ class RestServer extends \WP_REST_Controller
   }
 
   public function af_get_productlist(\WP_REST_Request $request)
-  { 
+  {
     $productController = new ProductController();
     $payload = $request->get_params();
     $currency = filter_var($payload["currency"], FILTER_SANITIZE_STRING);
-    
-    $currencyList = ["czk","usd","eur"];
+
+    $currencyList = ["czk", "usd", "eur"];
 
     if (!in_array($currency, $currencyList)) {
-        return new \WP_Error("rest_forbidden", "Currency not found",["status" => 404]);
+      return new \WP_Error("not_found", "Currency not found", ["status" => 404]);
     }
 
-    $linkList = $productController->getProductList($this->logged_in, $currency);
-    //var_dump($linkList);
-    
+    $productList = $productController->getProductList($currency);
+    if (!$productList) return new \WP_Error("not_found", "Items not found", ["status" => 404]);
+
     return new \WP_REST_Response(
-      ["data" => $linkList],
+      ["data" => $productList],
       200
     );
   }

@@ -5,7 +5,7 @@ namespace Afatoga\Api;
 
 
 class LinkController {
-    public function getLinks (string $currency) {
+    public function getLinkList (string $currency) {
         return ["currency"=>$currency];
     }
 }

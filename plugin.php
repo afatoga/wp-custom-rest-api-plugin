@@ -34,3 +34,16 @@ add_action("rest_api_init", function () {
   $af_restserver = new RestServer();
   $af_restserver->register_routes();
 });
+
+/**
+ * Register the /wp-json/af_restserver/v1/get_productlist endpoint so it will be cached.
+ */
+
+function af_add_productlist_endpoint( $allowed_endpoints ) {
+    if ( ! isset( $allowed_endpoints[ 'af_restserver/v1' ] ) || 
+         ! in_array( 'get_productlist', $allowed_endpoints[ 'af_restserver/v1' ] ) ) {
+        $allowed_endpoints[ 'af_restserver/v1' ][] = 'get_productlist';
+    }
+    return $allowed_endpoints;
+}
+add_filter( 'wp_rest_cache/allowed_endpoints', 'af_add_productlist_endpoint', 10, 1);

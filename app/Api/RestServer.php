@@ -36,6 +36,17 @@ class RestServer extends \WP_REST_Controller
     );
     register_rest_route(
       $namespace,
+      "/product",
+      [
+        [
+          "methods"         => \WP_REST_Server::READABLE,
+          "callback"        => [$this, "af_get_product"],
+          "permission_callback"   => "__return_true"
+        ],
+      ]
+    );
+    register_rest_route(
+      $namespace,
       "/get_productlist",
       [
         [
@@ -94,6 +105,7 @@ class RestServer extends \WP_REST_Controller
     $productController = new ProductController();
     $payload = $request->get_params();
     $currency = filter_var($payload["currency"], FILTER_SANITIZE_STRING);
+    $hash = filter_var($payload["h"], FILTER_SANITIZE_STRING);
 
     $currencyList = ["czk", "usd", "eur"];
 
@@ -101,11 +113,26 @@ class RestServer extends \WP_REST_Controller
       return new \WP_Error("not_found", "Currency not found", ["status" => 404]);
     }
 
-    $productList = $productController->getProductList($currency);
+    $productList = $productController->getProductList($currency, $hash);
     if (!$productList) return new \WP_Error("not_found", "Items not found", ["status" => 404]);
 
     return new \WP_REST_Response(
       ["data" => $productList],
+      200
+    );
+  }
+
+  public function af_get_product(\WP_REST_Request $request)
+  {
+    $productController = new ProductController();
+    $payload = $request->get_params();
+    $currency = filter_var($payload["currency"], FILTER_SANITIZE_STRING);
+    $hash = filter_var($payload["h"], FILTER_SANITIZE_STRING);
+
+    $productDetail = $productController->getProductDetail($this->logged_in, $currency, $hash);
+
+    return new \WP_REST_Response(
+      ["data" => $productDetail],
       200
     );
   }

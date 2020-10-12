@@ -36,6 +36,17 @@ add_action("rest_api_init", function () {
 });
 
 /**
+ * Register the /wp-json/af_restserver/v1/product endpoint not to request authentication
+ */
+
+add_filter( 'jwt_auth_whitelist', function ( $endpoints ) {
+  return [
+      '/wp-json/af_restserver/v1/product',
+      '/wp-json/af_restserver/v1/get_productlist'
+  ];
+} );
+
+/**
  * Register the /wp-json/af_restserver/v1/get_productlist endpoint so it will be cached.
  */
 

@@ -28,7 +28,7 @@ class RestServer extends \WP_REST_Controller
       "/register",
       [
         [
-          "methods"         => \WP_REST_Server::CREATABLE,
+          "methods"         => "POST",
           "callback"        => [$this, "af_register_new_user"],
           "permission_callback" => "__return_true",
         ]
@@ -39,7 +39,7 @@ class RestServer extends \WP_REST_Controller
       "/product",
       [
         [
-          "methods"         => \WP_REST_Server::READABLE,
+          "methods"         => "GET",
           "callback"        => [$this, "af_get_product"],
           "permission_callback"   => "__return_true"
         ],
@@ -50,7 +50,7 @@ class RestServer extends \WP_REST_Controller
       "/get_productlist",
       [
         [
-          "methods"         => \WP_REST_Server::READABLE,
+          "methods"         => "GET",
           "callback"        => [$this, "af_get_productlist"],
           "permission_callback"   => [$this, "af_is_user_logged_in"]
         ],
@@ -61,16 +61,19 @@ class RestServer extends \WP_REST_Controller
       "/get_linklist",
       [
         [
-          "methods"         => \WP_REST_Server::READABLE,
+          "methods"         => "GET",
           "callback"        => [$this, "af_get_linklist"],
-          "permission_callback"   => [$this, "af_is_user_logged_in"]
+          "permission_callback"   => "__return_true"
         ],
       ]
     );
   }
 
   public function af_is_user_logged_in()
-  {
+  { 
+    // if( class_exists('Jwt_Auth_Public') ) $jwtAuth_plugin = new \Jwt_Auth_Public();
+    // $jwtAuth_plugin->validate_token(false);
+
     if (!$this->logged_in) {
       return true;
       return new \WP_Error("rest_forbidden", "Access forbidden", ["status" => 401]);

@@ -4,6 +4,7 @@
 namespace Afatoga\Api;
 
 use Afatoga\Services\DatabaseService;
+use Afatoga\Services\HashTableService;
 
 
 class ProductController
@@ -19,11 +20,12 @@ class ProductController
 
     public function getProductList(string $currency, string $hash): ?array
     {
-        $currencyRate = (float) $this->getCurrencyRate($currency);
-        if (!$currencyRate) return false;
-        $query = "SELECT * FROM af_products LIMIT 150";
+        // $currencyRate = (float) $this->getCurrencyRate($currency);
+        // if (!$currencyRate) return false;
+        // $query = "SELECT * FROM af_products LIMIT 150";
 
-        $hashData = $this->getDataFromHash($hash);
+        $hashData = $this->getDataFromHash($hash, "product");
+        return $hashData;
         if (!isset($hashData["secretRatio"])) return false;
 
         $stmt = $this->db->prepare($query);
@@ -43,18 +45,21 @@ class ProductController
 
     public function getProductDetail(bool $logged_in, string $currency, string $hash): ?array
     {
-        $hashData = $this->getDataFromHash($hash);
+        $hashData = $this->getDataFromHash($hash, "product");
         if (!isset($hashData["productId"])) return false;
         if (!$logged_in) $currency = null;
         $productDetailData = $this->getProductDetailData($productId, $currency);
         return $productDetailData;
     }
 
-    private function getDataFromHash(string $hash): array
-    {
+    private function getDataFromHash(string $hash, string $type): ?array
+    {   
+        $hashTableService = new HashTableService();
+        $data = $hashTableService->getData($hash, $type);
+        if (empty($data)) return false;
+        //$classicMD5Hash = $hashService->MD5_24to32($hash);
         //is hash valid?
-        return ["secretRatio" => 1.5];
-        return ["productId" => 1, "secretRatio" => 1.5];
+        return $data;
     }
 
     private function getProductDetailData(int $productId, ?string $currency)

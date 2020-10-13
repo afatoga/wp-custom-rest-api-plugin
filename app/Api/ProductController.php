@@ -18,25 +18,24 @@ class ProductController
         $this->db = $dbService->getConnection();
     }
 
-    public function getProductList(string $currency, string $hash): ?array
+    public function getProductList(string $hash): ?array
     {
-        // $currencyRate = (float) $this->getCurrencyRate($currency);
-        // if (!$currencyRate) return false;
-        // $query = "SELECT * FROM af_products LIMIT 150";
+        $query = "SELECT * FROM af_products LIMIT 150";
 
-        $hashData = $this->getDataFromHash($hash, "product");
-        return $hashData;
-        if (!isset($hashData["secretRatio"])) return false;
+        $hashData = $this->getDataFromHash($hash);
+        $secretRatio = (!isset($hashData["secretRatio"])) ? 1 : 0.01*$hashData["secretRatio"];
+        $currencyName = (!isset($hashData["currency"])) ? "USD" : $hashData["currency"];
+        $currencyRate = $this->getCurrencyRate($currencyName);
+        if (!$currencyRate) return null;
 
         $stmt = $this->db->prepare($query);
         $stmt->execute();
         $num = $stmt->rowCount();
-
-        if (!$num) return false;
+        if (!$num) return null;
 
         $productList = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         foreach ($productList as &$product) {
-            $product["Price"] = ceil((int) $product["Minimal_price_USDct"] * $currencyRate);
+            $product["Price"] = ceil((int) $product["Minimal_price_USDct"] * $currencyRate * (1-$secretRatio));
             unset($product["Minimal_price_USDct"]);
             unset($product["Code_private"]);
         }
@@ -45,20 +44,17 @@ class ProductController
 
     public function getProductDetail(bool $logged_in, string $currency, string $hash): ?array
     {
-        $hashData = $this->getDataFromHash($hash, "product");
+        $hashData = $this->getDataFromHash($hash);
         if (!isset($hashData["productId"])) return false;
         if (!$logged_in) $currency = null;
         $productDetailData = $this->getProductDetailData($productId, $currency);
         return $productDetailData;
     }
 
-    private function getDataFromHash(string $hash, string $type): ?array
+    private function getDataFromHash(string $hash): array
     {   
         $hashTableService = new HashTableService();
-        $data = $hashTableService->getData($hash, $type);
-        if (empty($data)) return false;
-        //$classicMD5Hash = $hashService->MD5_24to32($hash);
-        //is hash valid?
+        $data = $hashTableService->getData($hash);
         return $data;
     }
 
@@ -76,10 +72,12 @@ class ProductController
         return $result;
     }
 
-    private function getCurrencyRate(string $currency): ?string
+    private function getCurrencyRate(string $currency): ?float
     {
         $currency = strtoupper($currency);
-        if ($currency === "USD") return '1';
+        if ($currency === "USD") return 1.00;
+        if ($currency === "EUR") return 0.80;
+        if ($currency === "CZK") return 23.00;
 
         $query = "SELECT Rate FROM af_currency_rates WHERE `Name` = ? LIMIT 1";
 
@@ -88,7 +86,8 @@ class ProductController
         $stmt->bindParam(1, $currencyRateName);
         $stmt->execute();
         $result = $stmt->fetchColumn();
-        if ($result) return $result;
-        return false;
+        
+        if (!$result) return null;
+        return (float) $result;
     }
 }

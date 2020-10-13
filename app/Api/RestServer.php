@@ -116,7 +116,7 @@ class RestServer extends \WP_REST_Controller
       return new \WP_Error("not_found", "Currency not found", ["status" => 404]);
     }
 
-    $productList = $productController->getProductList($currency, $hash);
+    $productList = $productController->getProductList($hash);
     if (!$productList) return new \WP_Error("not_found", "Items not found", ["status" => 404]);
 
     return new \WP_REST_Response(

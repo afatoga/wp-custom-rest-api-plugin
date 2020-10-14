@@ -18,11 +18,10 @@ class ProductController
         $this->db = $dbService->getConnection();
     }
 
-    public function getProductList(string $hash): ?array
+    public function getProductList($hash = null): ?array
     {
         $query = "SELECT * FROM af_products LIMIT 150";
-
-        $hashData = $this->getDataFromHash($hash);
+        $hashData = ($hash) ? $this->getDataFromHash($hash) : ;
         $secretRatio = (!isset($hashData["secretRatio"])) ? 1 : 0.01*$hashData["secretRatio"];
         $currencyName = (!isset($hashData["currency"])) ? "USD" : $hashData["currency"];
         $currencyRate = $this->getCurrencyRate($currencyName);

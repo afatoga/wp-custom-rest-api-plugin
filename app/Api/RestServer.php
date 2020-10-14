@@ -107,14 +107,7 @@ class RestServer extends \WP_REST_Controller
   {
     $productController = new ProductController();
     $payload = $request->get_params();
-    $currency = filter_var($payload["currency"], FILTER_SANITIZE_STRING);
-    $hash = filter_var($payload["h"], FILTER_SANITIZE_STRING);
-
-    $currencyList = ["czk", "usd", "eur"];
-
-    if (!in_array($currency, $currencyList)) {
-      return new \WP_Error("not_found", "Currency not found", ["status" => 404]);
-    }
+    $hash = (isset($payload["h"])) ? filter_var($payload["h"], FILTER_SANITIZE_STRING) : null;
 
     $productList = $productController->getProductList($hash);
     if (!$productList) return new \WP_Error("not_found", "Items not found", ["status" => 404]);

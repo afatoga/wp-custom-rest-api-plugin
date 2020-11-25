@@ -18,19 +18,19 @@ class ProductController
         $this->db = $dbService->getConnection();
     }
 
-    public function getProductList($hash = null): ?array
+    public function getProductList($hash): array
     {
         $query = "SELECT * FROM af_products LIMIT 150";
-        $hashData = ($hash) ? $this->getDataFromHash($hash) : ;
+        $hashData = $this->getDataFromHash($hash);
         $secretRatio = (!isset($hashData["secretRatio"])) ? 1 : 0.01*$hashData["secretRatio"];
         $currencyName = (!isset($hashData["currency"])) ? "USD" : $hashData["currency"];
         $currencyRate = $this->getCurrencyRate($currencyName);
-        if (!$currencyRate) return null;
+        if (!$currencyRate) return [];
 
         $stmt = $this->db->prepare($query);
         $stmt->execute();
         $num = $stmt->rowCount();
-        if (!$num) return null;
+        if (!$num) return [];
 
         $productList = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         foreach ($productList as &$product) {
@@ -41,12 +41,12 @@ class ProductController
         return $productList;
     }
 
-    public function getProductDetail(bool $logged_in, string $currency, string $hash): ?array
+    public function getProductDetail(bool $logged_in, string $currency, string $hash): array
     {
         $hashData = $this->getDataFromHash($hash);
-        if (!isset($hashData["productId"])) return false;
+        if (!isset($hashData["productCode"])) return false;
         if (!$logged_in) $currency = null;
-        $productDetailData = $this->getProductDetailData($productId, $currency);
+        $productDetailData = $this->getProductDetailData($hashData["productCode"], $currency);
         return $productDetailData;
     }
 
@@ -57,12 +57,12 @@ class ProductController
         return $data;
     }
 
-    private function getProductDetailData(int $productId, ?string $currency)
+    private function getProductDetailData(string $productCode, ?string $currency)
     {
-        $query = "SELECT * FROM af_products WHERE `ID` = ? LIMIT 1";
+        $query = "SELECT * FROM af_products WHERE `Code` = ? LIMIT 1";
 
         $stmt = $this->db->prepare($query);
-        $stmt->bindParam(1, $productId);
+        $stmt->bindParam(1, $productCode, \PDO::PARAM_STR);
         $stmt->execute();
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         if (empty($result)) return false;

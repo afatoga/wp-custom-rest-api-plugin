@@ -8,8 +8,12 @@ class HashTableService
     {
         $file = fopen(__DIR__ . '/hashtable_links.csv', 'r');
         $value = "";
-        while (($line = fgetcsv($file, 0, ";")) !== FALSE) {
-            if ($line[1] === $hash) {
+
+        if (strlen($hash) < 10) return [];
+        $hashPart = substr($hash, 0, 9);
+
+        while (($line = fgetcsv($file, 0, ",")) !== FALSE) {
+            if ($line[1] === $hashPart) {
                 $value = $line[0];
                 break;
             }
@@ -20,6 +24,12 @@ class HashTableService
         
         $currency = substr($value, 0, 3);
         $ratio = (int) substr($value, 4, 2);
-        return ["secretRatio" => $ratio, "currency" => $currency];
+        $productCode = (strlen($hash) === 14) ? substr($hash, 10, 4) : null;
+
+        return [
+            "secretRatio" => $ratio, 
+            "currency" => $currency,
+            "productCode" => $productCode
+        ];
     }
 }

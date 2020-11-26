@@ -23,9 +23,8 @@ class ProductController
         $query = "SELECT * FROM af_products LIMIT 150";
         $hashData = $this->getDataFromHash($hash);
         $secretRatio = (!isset($hashData["secretRatio"])) ? 1 : 0.01*$hashData["secretRatio"];
-        $currencyName = (!isset($hashData["currency"])) ? "USD" : $hashData["currency"];
-        $currencyRate = $this->getCurrencyRate($currencyName);
-        if (!$currencyRate) return [];
+        $currencyName = strtoupper($hashData["currency"]);
+        // return ["c"=> $hashData];
 
         $stmt = $this->db->prepare($query);
         $stmt->execute();
@@ -33,19 +32,30 @@ class ProductController
         if (!$num) return [];
 
         $productList = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-        foreach ($productList as &$product) {
-            $product["Price"] = ceil((int) $product["Minimal_price_USDct"] * $currencyRate * (1-$secretRatio));
+        
+        if ($currencyName !== "XXX") {
+
+            $currencyRate = $this->getCurrencyRate($currencyName);
+            if (!$currencyRate) return [];
+
+            foreach ($productList as &$product) {
+                $product["Price"] = ceil((int) $product["Minimal_price_USDct"] * $currencyRate * (1-$secretRatio));
+                unset($product["Minimal_price_USDct"]);
+                unset($product["Code_private"]);
+            }
+        } else {
             unset($product["Minimal_price_USDct"]);
             unset($product["Code_private"]);
         }
+
         return $productList;
     }
 
-    public function getProductDetail(bool $logged_in, string $currency, string $hash): array
+    public function getProductDetail(bool $logged_in, string $hash): array
     {
         $hashData = $this->getDataFromHash($hash);
         if (!isset($hashData["productCode"])) return false;
-        if (!$logged_in) $currency = null;
+        $currency = ($logged_in && $hashData["currency"] !== "xxx") ? $hashData["currency"] : null;
         $productDetailData = $this->getProductDetailData($hashData["productCode"], $currency);
         return $productDetailData;
     }
@@ -66,7 +76,12 @@ class ProductController
         $stmt->execute();
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         if (empty($result)) return false;
-        if ($currency) $result["Price"] = ceil((int)$result["Minimal_price_USDct"] * $this->getCurrencyRate($currency));
+        
+        if ($currency) {
+            $result["Price"] = ceil((int)$result["Minimal_price_USDct"] * $this->getCurrencyRate($currency));
+        } else {
+            unset($result["Minimal_price_USDct"]);
+        }
 
         return $result;
     }
@@ -77,6 +92,7 @@ class ProductController
         if ($currency === "USD") return 1.00;
         if ($currency === "EUR") return 0.80;
         if ($currency === "CZK") return 23.00;
+        if ($currency === "GBP") return 0.60;
 
         $query = "SELECT Rate FROM af_currency_rates WHERE `Name` = ? LIMIT 1";
 

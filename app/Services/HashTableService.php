@@ -10,7 +10,7 @@ class HashTableService
         $value = "";
 
         if (strlen($hash) < 10) return [];
-        $hashPart = substr($hash, 0, 9);
+        $hashPart = substr($hash, 0, 10);
 
         while (($line = fgetcsv($file, 0, ",")) !== FALSE) {
             if ($line[1] === $hashPart) {
@@ -23,7 +23,7 @@ class HashTableService
         if (empty($value)) return [];
         
         $currency = substr($value, 0, 3);
-        $ratio = (int) substr($value, 4, 2);
+        $ratio = intval(substr($value, 4, 2));
         $productCode = (strlen($hash) === 14) ? substr($hash, 10, 4) : null;
 
         return [
@@ -31,5 +31,26 @@ class HashTableService
             "currency" => $currency,
             "productCode" => $productCode
         ];
+    }
+
+    public function getHashlist(string $currency): array
+    {
+        $file = fopen(__DIR__ . '/hashtable_links.csv', 'r');
+
+        if (strlen($currency) < 3) return [];
+
+        $hashlist = [];
+
+        while (($line = fgetcsv($file, 0, ",")) !== FALSE) {
+            if (substr($line[0], 0, 3) === $currency) {
+                $hashlist[] = [
+                    "hash"=>$line[1],
+                    "secretRatio"=>intval(substr($line[0], 4, 2))
+                ];
+            }
+        }
+        fclose($file);
+
+        return $hashlist;
     }
 }

@@ -63,7 +63,7 @@ class RestServer extends \WP_REST_Controller
         [
           "methods"         => "GET",
           "callback"        => [$this, "af_get_linklist"],
-          "permission_callback"   => "__return_true"
+          "permission_callback"   => [$this, "af_is_user_logged_in"]
         ],
       ]
     );
@@ -71,11 +71,8 @@ class RestServer extends \WP_REST_Controller
 
   public function af_is_user_logged_in()
   { 
-    // if( class_exists('Jwt_Auth_Public') ) $jwtAuth_plugin = new \Jwt_Auth_Public();
-    // $jwtAuth_plugin->validate_token(false);
-
     if (!$this->logged_in) {
-      return true;
+      //return true;
       return new \WP_Error("rest_forbidden", "Access forbidden", ["status" => 401]);
     }
     // !current_user_can("read")
@@ -88,12 +85,13 @@ class RestServer extends \WP_REST_Controller
     $payload = $request->get_params();
     $currency = filter_var($payload["currency"], FILTER_SANITIZE_STRING);
 
-    $currencyList = ["czk", "usd", "eur", "rub", "gbp"];
+    $currencyList = ["CZK", "USD", "EUR", "RUB", "GBP"];
 
-    if (!in_array($currency, $currencyList)) {
+    if (!$currency || !in_array($currency, $currencyList)) {
       return new \WP_Error("rest_not_found", "Currency not found", ["status" => 404]);
     }
 
+    $currency = strtolower($currency);
     $linkList = $linkController->getLinkList($currency);
 
     return new \WP_REST_Response(
@@ -123,10 +121,10 @@ class RestServer extends \WP_REST_Controller
   {
     $productController = new ProductController();
     $payload = $request->get_params();
-    $currency = filter_var($payload["currency"], FILTER_SANITIZE_STRING);
+    //$currency = filter_var($payload["currency"], FILTER_SANITIZE_STRING);
     $hash = filter_var($payload["h"], FILTER_SANITIZE_STRING);
 
-    $productDetail = $productController->getProductDetail($this->logged_in, $currency, $hash);
+    $productDetail = $productController->getProductDetail($this->logged_in, $hash);
     
     if (empty($productDetail)) return new \WP_Error("rest_not_found", "Product not found", ["status" => 404]);
 

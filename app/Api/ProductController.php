@@ -20,9 +20,12 @@ class ProductController
 
     public function getProductList($hash): array
     {
-        $query = "SELECT * FROM af_products LIMIT 150";
+        $query = "SELECT af_products.*, af_product_videos.main AS video_id
+            FROM af_products
+            LEFT OUTER JOIN af_product_videos ON af_products.Code = af_product_videos.product_code
+            LIMIT 150";
         $hashData = $this->getDataFromHash($hash);
-        $secretRatio = (!isset($hashData["secretRatio"])) ? 1 : 0.01*$hashData["secretRatio"];
+        $secretRatio = (!isset($hashData["secretRatio"])) ? 0 : 0.01*$hashData["secretRatio"];
         $currencyName = strtoupper($hashData["currency"]);
         // return ["c"=> $hashData];
 
@@ -39,7 +42,7 @@ class ProductController
             if (!$currencyRate) return [];
 
             foreach ($productList as &$product) {
-                $product["Price"] = ceil((int) $product["Minimal_price_USDct"] * $currencyRate * (1-$secretRatio));
+                $product["Price"] = ceil((int) $product["Minimal_price_USDct"] * $currencyRate * (1+$secretRatio));
                 unset($product["Minimal_price_USDct"]);
                 unset($product["Code_private"]);
             }

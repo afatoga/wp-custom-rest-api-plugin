@@ -43,10 +43,8 @@ class HashTableService
 
         while (($line = fgetcsv($file, 0, ",")) !== FALSE) {
             if (substr($line[0], 0, 3) === $currency) {
-                $hashlist[] = [
-                    "hash"=>$line[1],
-                    "secretRatio"=>intval(substr($line[0], 4, 2))
-                ];
+                $secretRatio = intval(substr($line[0], 4, 2));
+                $hashlist[$secretRatio] = $line[1];
             }
         }
         fclose($file);

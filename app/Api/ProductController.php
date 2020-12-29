@@ -22,7 +22,7 @@ class ProductController
     {
         $query = "SELECT af_products.*, af_product_videos_old.main AS video
             FROM af_products
-            LEFT OUTER JOIN af_product_videos ON af_products.Code = af_product_videos.product_code
+            LEFT OUTER JOIN af_product_videos_old ON af_products.Code = af_product_videos_old.product_code
             -- LIMIT :size
             -- OFFSET :offset";
         $hashData = $this->getDataFromHash($hash);
@@ -37,17 +37,13 @@ class ProductController
 
         $productList = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         
-        if ($currencyName !== "XXX") {
+        $currencyRate = ($currencyName !== "XXX") ? $this->getCurrencyRate($currencyName) : 1;
+        if (!$currencyRate) return [];
 
-            $currencyRate = $this->getCurrencyRate($currencyName);
-            if (!$currencyRate) return [];
-
-            foreach ($productList as &$product) {
+        foreach ($productList as &$product) {
+            if ($currencyName !== "XXX") {
                 $product["Price"] = ceil((int) $product["Minimal_price_USDct"] * $currencyRate * (1+$secretRatio));
-                unset($product["Minimal_price_USDct"]);
-                unset($product["Code_private"]);
             }
-        } else {
             unset($product["Minimal_price_USDct"]);
             unset($product["Code_private"]);
         }
@@ -76,7 +72,7 @@ class ProductController
     {
         $query = "SELECT af_products.*, af_product_videos_old.main, af_product_videos_old.artificial, af_product_videos_old.natural  
         FROM af_products 
-        LEFT OUTER JOIN af_product_videos ON af_products.Code = af_product_videos.product_code
+        LEFT OUTER JOIN af_product_videos_old ON af_products.Code = af_product_videos_old.product_code
         WHERE `Code` = ? LIMIT 1";
 
         $stmt = $this->db->prepare($query);

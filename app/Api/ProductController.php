@@ -18,19 +18,20 @@ class ProductController
         $this->db = $dbService->getConnection();
     }
 
-    public function getProductList($hash): array
+    public function getProductList(string $hash, int $limit, int $offset): array
     {
-        $query = "SELECT af_products.*, af_product_videos.main AS video_id
+        $query = "SELECT af_products.*, af_product_videos.main AS video
             FROM af_products
             LEFT OUTER JOIN af_product_videos ON af_products.Code = af_product_videos.product_code
-            LIMIT 150";
+            -- LIMIT :size
+            -- OFFSET :offset";
         $hashData = $this->getDataFromHash($hash);
         $secretRatio = (!isset($hashData["secretRatio"])) ? 0 : 0.01*$hashData["secretRatio"];
         $currencyName = strtoupper($hashData["currency"]);
         // return ["c"=> $hashData];
 
         $stmt = $this->db->prepare($query);
-        $stmt->execute();
+        $stmt->execute([":size" => $limit, ":offset" => $offset]);
         $num = $stmt->rowCount();
         if (!$num) return [];
 
@@ -51,15 +52,16 @@ class ProductController
             unset($product["Code_private"]);
         }
 
-        return $productList;
+        return ["productList"=>$productList, "currency"=> $currencyName];
     }
 
     public function getProductDetail(bool $logged_in, string $hash): array
     {
         $hashData = $this->getDataFromHash($hash);
         if (!isset($hashData["productCode"])) return false;
+        $secretRatio = (!isset($hashData["secretRatio"])) ? 0 : 0.01*$hashData["secretRatio"];
         $currency = ($logged_in && $hashData["currency"] !== "xxx") ? $hashData["currency"] : null;
-        $productDetailData = $this->getProductDetailData($hashData["productCode"], $currency);
+        $productDetailData = $this->getProductDetailData($hashData["productCode"], $currency, $secretRatio);
         return $productDetailData;
     }
 
@@ -70,9 +72,12 @@ class ProductController
         return $data;
     }
 
-    private function getProductDetailData(string $productCode, ?string $currency)
+    private function getProductDetailData(string $productCode, ?string $currency, float $secretRatio)
     {
-        $query = "SELECT * FROM af_products WHERE `Code` = ? LIMIT 1";
+        $query = "SELECT af_products.*, af_product_videos.main, af_product_videos.artificial, af_product_videos.natural  
+        FROM af_products 
+        LEFT OUTER JOIN af_product_videos ON af_products.Code = af_product_videos.product_code
+        WHERE `Code` = ? LIMIT 1";
 
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(1, $productCode, \PDO::PARAM_STR);
@@ -81,7 +86,9 @@ class ProductController
         if (empty($result)) return false;
         
         if ($currency) {
-            $result["Price"] = ceil((int)$result["Minimal_price_USDct"] * $this->getCurrencyRate($currency));
+            $result["Price"] = ceil((int)$result["Minimal_price_USDct"] * $this->getCurrencyRate($currency) * (1+$secretRatio));
+
+            $result["currency"] = strtoupper($currency);
         } else {
             unset($result["Minimal_price_USDct"]);
         }

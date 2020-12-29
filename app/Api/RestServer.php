@@ -36,7 +36,7 @@ class RestServer extends \WP_REST_Controller
     );
     register_rest_route(
       $namespace,
-      "/product",
+      "/get_product",
       [
         [
           "methods"         => "GET",
@@ -105,14 +105,16 @@ class RestServer extends \WP_REST_Controller
     $productController = new ProductController();
     $payload = $request->get_params();
     $hash = (isset($payload["h"])) ? filter_var($payload["h"], FILTER_SANITIZE_STRING) : null;
+    $limit = (isset($payload["limit"])) ? filter_var($payload["limit"], FILTER_VALIDATE_INT) : 10;
+    $offset = (isset($payload["offset"])) ? filter_var($payload["offset"], FILTER_VALIDATE_INT) : 0;
 
     if (!$hash) return new \WP_Error("rest_bad_request", "Hash not valid", ["status" => 400]);
 
-    $productList = $productController->getProductList($hash);
-    if (empty($productList)) return new \WP_Error("rest_not_found", "Products not found", ["status" => 404]);
+    $response = $productController->getProductList($hash, $limit, $offset);
+    if (empty($response["productList"])) return new \WP_Error("rest_not_found", "Products not found", ["status" => 404]);
 
     return new \WP_REST_Response(
-      ["data" => $productList],
+      ["data" => $response],
       200
     );
   }

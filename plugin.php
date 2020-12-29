@@ -57,4 +57,4 @@ function af_add_productlist_endpoint( $allowed_endpoints ) {
     }
     return $allowed_endpoints;
 }
-add_filter( 'wp_rest_cache/allowed_endpoints', 'af_add_productlist_endpoint', 10, 1);
+//add_filter( 'wp_rest_cache/allowed_endpoints', 'af_add_productlist_endpoint', 10, 1);

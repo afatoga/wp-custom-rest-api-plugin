@@ -20,7 +20,7 @@ class ProductController
 
     public function getProductList(string $hash, int $limit, int $offset): array
     {
-        $query = "SELECT af_products.*, af_product_videos.main AS video
+        $query = "SELECT af_products.*, af_product_videos_old.main AS video
             FROM af_products
             LEFT OUTER JOIN af_product_videos ON af_products.Code = af_product_videos.product_code
             -- LIMIT :size
@@ -74,7 +74,7 @@ class ProductController
 
     private function getProductDetailData(string $productCode, ?string $currency, float $secretRatio)
     {
-        $query = "SELECT af_products.*, af_product_videos.main, af_product_videos.artificial, af_product_videos.natural  
+        $query = "SELECT af_products.*, af_product_videos_old.main, af_product_videos_old.artificial, af_product_videos_old.natural  
         FROM af_products 
         LEFT OUTER JOIN af_product_videos ON af_products.Code = af_product_videos.product_code
         WHERE `Code` = ? LIMIT 1";
@@ -83,7 +83,7 @@ class ProductController
         $stmt->bindParam(1, $productCode, \PDO::PARAM_STR);
         $stmt->execute();
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (empty($result)) return false;
+        if (empty($result)) return [];
         
         if ($currency) {
             $result["Price"] = ceil((int)$result["Minimal_price_USDct"] * $this->getCurrencyRate($currency) * (1+$secretRatio));

@@ -20,9 +20,9 @@ class ProductController
 
     public function getProductList(string $hash, int $limit, int $offset): array
     {
-        $query = "SELECT af_products.*, af_product_videos_old.main AS video
+        $query = "SELECT af_products.*, af_product_media.main_video_url AS video
             FROM af_products
-            LEFT OUTER JOIN af_product_videos_old ON af_products.Code = af_product_videos_old.product_code
+            LEFT OUTER JOIN af_product_media ON af_products.Code = af_product_media.product_code
             -- LIMIT :size
             -- OFFSET :offset";
         $hashData = $this->getDataFromHash($hash);
@@ -70,9 +70,9 @@ class ProductController
 
     private function getProductDetailData(string $productCode, ?string $currency, float $secretRatio)
     {
-        $query = "SELECT af_products.*, af_product_videos_old.main, af_product_videos_old.artificial, af_product_videos_old.natural  
+        $query = "SELECT af_products.*, af_product_media.main, af_product_media.artificial, af_product_media.natural  
         FROM af_products 
-        LEFT OUTER JOIN af_product_videos_old ON af_products.Code = af_product_videos_old.product_code
+        LEFT OUTER JOIN af_product_media ON af_products.Code = af_product_media.product_code
         WHERE `Code` = ? LIMIT 1";
 
         $stmt = $this->db->prepare($query);

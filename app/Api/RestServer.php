@@ -34,6 +34,31 @@ class RestServer extends \WP_REST_Controller
         ]
       ]
     );
+
+    register_rest_route(
+      $namespace,
+      "/update_user_data",
+      [
+        [
+          "methods"         => "POST",
+          "callback"        => [$this, "af_update_user_data"],
+          "permission_callback" => [$this, "af_is_user_logged_in"],
+        ]
+      ]
+    );
+
+    register_rest_route(
+      $namespace,
+      "/get_user_data",
+      [
+        [
+          "methods"         => "GET",
+          "callback"        => [$this, "af_get_user_data"],
+          "permission_callback"   => [$this, "af_is_user_logged_in"]
+        ],
+      ]
+    );
+
     register_rest_route(
       $namespace,
       "/get_product",
@@ -41,7 +66,7 @@ class RestServer extends \WP_REST_Controller
         [
           "methods"         => "GET",
           "callback"        => [$this, "af_get_product"],
-          "permission_callback"   => "__return_true"
+          "permission_callback"   => [$this, "af_is_user_logged_in"]
         ],
       ]
     );
@@ -73,8 +98,9 @@ class RestServer extends \WP_REST_Controller
   { 
 
     $payload = $request->get_params();
+    $route = $request->get_route();
     $hash = filter_var($payload["h"], FILTER_SANITIZE_STRING);
-    if ($hash === "7150ab71b8") return true;
+    if ($hash === "7150ab71b8" && ($route === "/af_restserver/v1/get_product" || $route === "/af_restserver/v1/get_productlist")) return true;
 
     if (!$this->logged_in) {
       //return true;
@@ -153,6 +179,61 @@ class RestServer extends \WP_REST_Controller
     return new \WP_REST_Response(
       ["message" => "success"],
       201
+    );
+  }
+
+  public function af_get_user_data()
+  { 
+    if (!$this->user) return wp_send_json_error("400");
+   
+    $all_meta_for_user = array_map( function( $a ){ return $a[0]; }, get_user_meta( $this->user->ID ) );
+
+    $data = [
+      "email" => $this->user->user_email,
+      "first_name" => $this->user->first_name,
+      "last_name" => $this->user->last_name,
+      "phone_number" => $all_meta_for_user["gemz_phone_number"],
+      "street" => $all_meta_for_user["gemz_street"],
+      "city" => $all_meta_for_user["gemz_city"],
+      "zip" => $all_meta_for_user["gemz_zip"],
+      "country" => $all_meta_for_user["gemz_country"],
+    ];
+
+    return new \WP_REST_Response(
+      $data,
+      200
+    );
+  }
+
+  
+
+  public function af_update_user_data(\WP_REST_Request $request)
+  {
+    if (!$this->user) return wp_send_json_error("400");
+    $userId = $this->user->ID;
+
+    $payload = $request->get_params();
+
+    $firstName = filter_var($payload["first_name"], FILTER_SANITIZE_STRING);
+    $lastName = filter_var($payload["last_name"], FILTER_SANITIZE_STRING);
+    $phoneNumber = filter_var($payload["phone_number"], FILTER_SANITIZE_STRING);
+    $street = filter_var($payload["street"], FILTER_SANITIZE_STRING);
+    $city = filter_var($payload["city"], FILTER_SANITIZE_STRING);
+    $zip = filter_var($payload["zip"], FILTER_SANITIZE_STRING);
+    $country = filter_var($payload["country"], FILTER_SANITIZE_STRING);
+
+    //if (!$email) return wp_send_json_error("Invalid email", 400);
+    update_user_meta( $userId, 'first_name', $firstName);
+    update_user_meta( $userId, 'last_name', $lastName);
+    update_user_meta( $userId, 'gemz_phone_number', $phoneNumber);
+    update_user_meta( $userId, 'gemz_street', $street);
+    update_user_meta( $userId, 'gemz_city', $city);
+    update_user_meta( $userId, 'gemz_zip', $zip);
+    update_user_meta( $userId, 'gemz_country', $country);
+
+    return new \WP_REST_Response(
+      ["message" => "success"],
+      200
     );
   }
 }

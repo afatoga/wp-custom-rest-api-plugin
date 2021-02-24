@@ -23,7 +23,7 @@ class HashTableService
         if (empty($value)) return [];
         
         $currency = substr($value, 0, 3);
-        $ratio = intval(substr($value, 4, 2));
+        $ratio = intval(substr($value, 4, 4));
         $productCode = (strlen($hash) === 14) ? substr($hash, 10, 4) : null;
 
         return [
@@ -43,7 +43,7 @@ class HashTableService
 
         while (($line = fgetcsv($file, 0, ",")) !== FALSE) {
             if (substr($line[0], 0, 3) === $currency) {
-                $secretRatio = intval(substr($line[0], 4, 2));
+                $secretRatio = intval(substr($line[0], 4, 4));
                 $hashlist[$secretRatio] = $line[1];
             }
         }

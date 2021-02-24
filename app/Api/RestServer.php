@@ -97,10 +97,10 @@ class RestServer extends \WP_REST_Controller
   public function af_is_user_logged_in(\WP_REST_Request $request)
   { 
 
-    $payload = $request->get_params();
-    $route = $request->get_route();
-    $hash = filter_var($payload["h"], FILTER_SANITIZE_STRING);
-    if ($hash === "7150ab71b8" && ($route === "/af_restserver/v1/get_product" || $route === "/af_restserver/v1/get_productlist")) return true;
+    // $payload = $request->get_params();
+    // $route = $request->get_route();
+    // $hash = filter_var($payload["h"], FILTER_SANITIZE_STRING);
+    // if ($hash === "7150ab71b8" && ($route === "/af_restserver/v1/get_product" || $route === "/af_restserver/v1/get_productlist")) return true;
 
     if (!$this->logged_in) {
       //return true;

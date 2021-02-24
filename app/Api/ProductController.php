@@ -40,9 +40,15 @@ class ProductController
         $currencyRate = ($currencyName !== "XXX") ? $this->getCurrencyRate($currencyName) : 1;
         if (!$currencyRate) return [];
 
+
         foreach ($productList as &$product) {
             if ($currencyName !== "XXX") {
-                $product["Price"] = ceil((int) $product["Minimal_price_USDct"] * $currencyRate * (1+$secretRatio));
+                
+                $netPricePerCarat = ceil((int) $product["Minimal_price_USDct"] * $currencyRate * (1+$secretRatio));
+                $netPricePerStone = (float) $product["Weight_in_ct"] * $netPricePerCarat;
+
+                $product["PricePerCarat"] = ceil($netPricePerCarat / 10)*10;
+                $product["PricePerStone"] = ceil($netPricePerStone / 10)*10;
             }
             unset($product["Minimal_price_USDct"]);
             unset($product["Code_private"]);
@@ -70,7 +76,7 @@ class ProductController
 
     private function getProductDetailData(string $productCode, ?string $currency, float $secretRatio)
     {
-        $query = "SELECT af_products.*, af_product_media.main, af_product_media.artificial, af_product_media.natural  
+        $query = "SELECT af_products.*, af_product_media.main_video_url as video, af_product_media.main, af_product_media.artificial, af_product_media.natural  
         FROM af_products 
         LEFT OUTER JOIN af_product_media ON af_products.Code = af_product_media.product_code
         WHERE `Code` = ? LIMIT 1";
@@ -82,7 +88,11 @@ class ProductController
         if (empty($result)) return [];
         
         if ($currency) {
-            $result["Price"] = ceil((int)$result["Minimal_price_USDct"] * $this->getCurrencyRate($currency) * (1+$secretRatio));
+            $netPricePerCarat = ceil((int)$result["Minimal_price_USDct"] * $this->getCurrencyRate($currency) * (1+$secretRatio));
+            $netPricePerStone = (float) $result["Weight_in_ct"] * $netPricePerCarat;
+
+            $result["PricePerCarat"] = ceil($netPricePerCarat/ 10)*10;
+            $result["PricePerStone"] = ceil($netPricePerStone / 10)*10;
 
             $result["currency"] = strtoupper($currency);
         } else {

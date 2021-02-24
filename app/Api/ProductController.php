@@ -76,7 +76,7 @@ class ProductController
 
     private function getProductDetailData(string $productCode, ?string $currency, float $secretRatio)
     {
-        $query = "SELECT af_products.*, af_product_media.main_video_url as video, af_product_media.main, af_product_media.artificial, af_product_media.natural  
+        $query = "SELECT af_products.*, af_product_media.main_video_url AS video, af_product_media.artificial, af_product_media.natural  
         FROM af_products 
         LEFT OUTER JOIN af_product_media ON af_products.Code = af_product_media.product_code
         WHERE `Code` = ? LIMIT 1";

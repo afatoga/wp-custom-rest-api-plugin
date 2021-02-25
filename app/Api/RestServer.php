@@ -144,8 +144,10 @@ class RestServer extends \WP_REST_Controller
     $response = $productController->getProductList($hash, $limit, $offset);
     if (empty($response["productList"])) return new \WP_Error("rest_not_found", "Products not found", ["status" => 404]);
 
+    $response["success"] = true; 
+
     return new \WP_REST_Response(
-      ["data" => $response],
+      $response,
       200
     );
   }
@@ -161,8 +163,13 @@ class RestServer extends \WP_REST_Controller
 
     if (empty($productDetail)) return new \WP_Error("rest_not_found", "Product not found", ["status" => 404]);
 
+    $response = [
+      "productDetail" => $productDetail,
+      "success" => true
+    ];
+
     return new \WP_REST_Response(
-      $productDetail,
+      $response,
       200
     );
   }

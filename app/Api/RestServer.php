@@ -169,13 +169,13 @@ class RestServer extends \WP_REST_Controller
 
   public function af_register_new_user(\WP_REST_Request $request)
   {
-    if (!$this->user) return wp_send_json_error("400");
-
     $payload = $request->get_params();
+    $secret = filter_var($payload["secret"], FILTER_SANITIZE_STRING);
     $email = filter_var($payload["username"], FILTER_VALIDATE_EMAIL);
-    if (!$email) return wp_send_json_error("Invalid email", 400);
+    if (!$email || $secret !== "QomcFu5pjv6pQP") return wp_send_json_error("Invalid email", 400);
 
     register_new_user($email, $email);
+
     return new \WP_REST_Response(
       ["message" => "success"],
       201

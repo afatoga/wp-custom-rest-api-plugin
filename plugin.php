@@ -41,8 +41,9 @@ add_action("rest_api_init", function () {
 
 add_filter( 'jwt_auth_whitelist', function ( $endpoints ) {
   return [
-      '/wp-json/af_restserver/v1/get_product',
-      '/wp-json/af_restserver/v1/get_productlist'
+      '/wp-json/af_restserver/v1/register'
+      //'/wp-json/af_restserver/v1/get_product',
+      //'/wp-json/af_restserver/v1/get_productlist'
   ];
 } );
 

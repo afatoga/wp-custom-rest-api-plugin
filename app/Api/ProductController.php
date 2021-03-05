@@ -40,9 +40,15 @@ class ProductController
         $currencyRate = ($currencyName !== "XXX") ? $this->getCurrencyRate($currencyName) : 1;
         if (!$currencyRate) return [];
 
+
         foreach ($productList as &$product) {
             if ($currencyName !== "XXX") {
-                $product["Price"] = ceil((int) $product["Minimal_price_USDct"] * $currencyRate * (1+$secretRatio));
+                
+                $netPricePerCarat = floor((int) $product["Minimal_price_USDct"] * $currencyRate * (1+$secretRatio));
+                $netPricePerStone = (float) $product["Weight_in_ct"] * $netPricePerCarat;
+
+                $product["PricePerCarat"] = $netPricePerCarat;
+                $product["PricePerStone"] = floor($netPricePerStone / 10)*10;
             }
             unset($product["Minimal_price_USDct"]);
             unset($product["Code_private"]);
@@ -82,7 +88,11 @@ class ProductController
         if (empty($result)) return [];
         
         if ($currency) {
-            $result["Price"] = ceil((int)$result["Minimal_price_USDct"] * $this->getCurrencyRate($currency) * (1+$secretRatio));
+            $netPricePerCarat = floor((int) $result["Minimal_price_USDct"] * $this->getCurrencyRate($currency) * (1+$secretRatio));
+            $netPricePerStone = (float) $result["Weight_in_ct"] * $netPricePerCarat;
+
+            $result["PricePerCarat"] = $netPricePerCarat;
+            $result["PricePerStone"] = floor($netPricePerStone / 10)*10;
 
             $result["currency"] = strtoupper($currency);
         } else {

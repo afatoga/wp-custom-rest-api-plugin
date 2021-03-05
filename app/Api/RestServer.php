@@ -97,10 +97,10 @@ class RestServer extends \WP_REST_Controller
   public function af_is_user_logged_in(\WP_REST_Request $request)
   {
 
-    $payload = $request->get_params();
-    $route = $request->get_route();
-    $hash = filter_var($payload["h"], FILTER_SANITIZE_STRING);
-    if (strpos($hash,"7150ab71b8") === 0 && ($route === "/af_restserver/v1/get_product" || $route === "/af_restserver/v1/get_productlist")) return true;
+    // $payload = $request->get_params();
+    // $route = $request->get_route();
+    // $hash = filter_var($payload["h"], FILTER_SANITIZE_STRING);
+    // if (strpos($hash,"7150ab71b8") === 0 && ($route === "/af_restserver/v1/get_product" || $route === "/af_restserver/v1/get_productlist")) return true;
 
     if (!$this->logged_in) {
       //return true;
@@ -144,8 +144,10 @@ class RestServer extends \WP_REST_Controller
     $response = $productController->getProductList($hash, $limit, $offset);
     if (empty($response["productList"])) return new \WP_Error("rest_not_found", "Products not found", ["status" => 404]);
 
+    $response["success"] = true; 
+
     return new \WP_REST_Response(
-      ["data" => $response],
+      $response,
       200
     );
   }
@@ -161,21 +163,26 @@ class RestServer extends \WP_REST_Controller
 
     if (empty($productDetail)) return new \WP_Error("rest_not_found", "Product not found", ["status" => 404]);
 
+    $response = [
+      "productDetail" => $productDetail,
+      "success" => true
+    ];
+
     return new \WP_REST_Response(
-      $productDetail,
+      $response,
       200
     );
   }
 
   public function af_register_new_user(\WP_REST_Request $request)
   {
-    if (!$this->user) return wp_send_json_error("400");
-
     $payload = $request->get_params();
+    $secret = filter_var($payload["secret"], FILTER_SANITIZE_STRING);
     $email = filter_var($payload["username"], FILTER_VALIDATE_EMAIL);
-    if (!$email) return wp_send_json_error("Invalid email", 400);
+    if (!$email || $secret !== "QomcFu5pjv6pQP") return wp_send_json_error("Invalid email", 400);
 
     register_new_user($email, $email);
+
     return new \WP_REST_Response(
       ["message" => "success"],
       201

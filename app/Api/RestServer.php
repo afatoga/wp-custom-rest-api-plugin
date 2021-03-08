@@ -115,11 +115,16 @@ class RestServer extends \WP_REST_Controller
     if (!$isReCaptchaValid) return new WP_Error("invalid_recaptcha", "Recaptcha is not valid", ["status" => 400]);
 
 
-    wp_insert_user([
+    $userId = wp_insert_user([
       'user_login' => $email,
       'user_email' => $email,
       'role' => 'subscriber'
     ]);
+
+    if ($userId) {
+      $approved = strpos($email, "@uhkt.cz") ? 1 : 0;
+      update_user_meta($userId, 'vize_reg_approved', $approved);
+    }
 
     return new WP_REST_Response(
       ["message" => "success"],
@@ -203,8 +208,15 @@ class RestServer extends \WP_REST_Controller
   public function aa_get_user_list(WP_REST_Request $request)
   {
     global $wpdb;
-    $tableName = $wpdb->prefix . "users";
-    $query = "SELECT * from {$tableName}";
+    $userMetaTable = $wpdb->prefix . "usermeta";
+    $usersTable = $wpdb->prefix . "users";
+    $query = "SELECT {$userMetaTable}.`user_id`, {$usersTable}.`user_registered`, 
+                     {$usersTable}.`user_email`
+              FROM {$userMetaTable}
+              INNER JOIN {$usersTable} ON {$userMetaTable}.`user_id` = {$usersTable}.ID
+              WHERE {$userMetaTable}.`meta_key` = 'vize_reg_approved'
+              AND {$userMetaTable}.`meta_value` = 1
+             ";
     $userList = $wpdb->get_results($query);
 
     if (empty($userList)) return new WP_Error("rest_forbidden", "Not found", ["status" => 404]);

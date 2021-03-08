@@ -3,7 +3,7 @@
 namespace Afatoga\Services;
 
 
-class DatabaseService{
+class PDOConnection{
 
     private $connection;
 

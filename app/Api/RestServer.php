@@ -215,7 +215,7 @@ class RestServer extends \WP_REST_Controller
               FROM {$userMetaTable}
               INNER JOIN {$usersTable} ON {$userMetaTable}.`user_id` = {$usersTable}.ID
               WHERE {$userMetaTable}.`meta_key` = 'vize_reg_approved'
-              AND {$userMetaTable}.`meta_value` = 1
+              AND {$userMetaTable}.`meta_value` = 0
              ";
     $userList = $wpdb->get_results($query);
 

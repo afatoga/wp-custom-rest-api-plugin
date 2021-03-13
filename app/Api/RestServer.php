@@ -6,6 +6,7 @@ use WP_Error;
 use WP_REST_Response;
 use WP_REST_Request;
 use Afatoga\Services\ReCaptcha;
+use Afatoga\Services\WP_Mail;
 
 class RestServer extends \WP_REST_Controller
 {
@@ -50,15 +51,15 @@ class RestServer extends \WP_REST_Controller
         ]
       ]
     );
-
+    
     register_rest_route(
       $namespace,
-      "/update_user_data",
+      "/user_registration_request",
       [
         [
           "methods"         => "POST",
-          "callback"        => [$this, "aa_update_user_data"],
-          "permission_callback" => [$this, "aa_is_user_logged_in"],
+          "callback"        => [$this, "aa_respond_to_user_registration_request"],
+          "permission_callback" => [$this, "aa_user_can_edit_pages"],
         ]
       ]
     );
@@ -101,6 +102,14 @@ class RestServer extends \WP_REST_Controller
     return true;
   }
 
+  public function aa_user_can_edit_pages()
+  {
+    if (!$this->logged_in || !$this->user->has_cap( 'edit_pages' )) {
+      return new WP_Error("rest_forbidden", "Access forbidden", ["status" => 401]);
+    }
+    return true;
+  }
+
   public function aa_submit_registration_form(WP_REST_Request $request)
   {
 
@@ -110,20 +119,35 @@ class RestServer extends \WP_REST_Controller
     $isReCaptchaValid = $reCaptcha->verifyUserToken($payload["g-recaptcha-response"]);
 
 
-    $email = filter_var($payload["email"], FILTER_VALIDATE_EMAIL);
-    if (!$email || username_exists($email) || email_exists($email)) return new WP_Error("invalid_input", "Invalid email", ["status" => 400]);
-    if (!$isReCaptchaValid) return new WP_Error("invalid_recaptcha", "Recaptcha is not valid", ["status" => 400]);
+    $email = filter_var(trim($payload["email"]), FILTER_VALIDATE_EMAIL);
+    if (!$email || username_exists($email) || email_exists($email)) return new WP_Error("invalid_email", "Tento email je obsazen nebo není validní", ["status" => 400, "payload_item"=>"email"]);
+    if (!$isReCaptchaValid) return new WP_Error("invalid_recaptcha", "Recaptcha není validní", ["status" => 400]);
 
+    $password = filter_var($payload["password"], FILTER_SANITIZE_STRING);
+    $password_retyped = filter_var($payload["password_retyped"], FILTER_SANITIZE_STRING);
+
+    if ($password !== $password_retyped) return new WP_Error("invalid_password", "Hesla se neshodují", ["status" => 400, "payload_item"=>"password_retyped"]);
+
+    $email = strtolower($email);
+    $first_name = filter_var(trim($payload["first_name"]), FILTER_SANITIZE_STRING);
+    $last_name = filter_var(trim($payload["last_name"]), FILTER_SANITIZE_STRING);
+    $department = filter_var(trim($payload["department"]), FILTER_SANITIZE_STRING);
 
     $userId = wp_insert_user([
       'user_login' => $email,
       'user_email' => $email,
+      'first_name' => $first_name,
+      'last_name' => $last_name,
+      'user_pass' => $password,
+      'show_admin_bar_front' => 'false',
       'role' => 'subscriber'
     ]);
 
     if ($userId) {
       $approved = strpos($email, "@uhkt.cz") ? 1 : 0;
       update_user_meta($userId, 'vize_reg_approved', $approved);
+
+      if ($department) update_user_meta($userId, 'vize_department', $department);
     }
 
     return new WP_REST_Response(
@@ -175,37 +199,41 @@ class RestServer extends \WP_REST_Controller
 
 
 
-  public function aa_update_user_data(WP_REST_Request $request)
+  public function aa_respond_to_user_registration_request(WP_REST_Request $request)
   {
-    if (!$this->user) return wp_send_json_error("400");
-    $userId = $this->user->ID;
-
     $payload = $request->get_params();
+    $action = filter_var($payload["action"], FILTER_SANITIZE_STRING);
+    $user_id = filter_var($payload["user_id"], FILTER_VALIDATE_INT);
 
-    $firstName = filter_var($payload["first_name"], FILTER_SANITIZE_STRING);
-    $lastName = filter_var($payload["last_name"], FILTER_SANITIZE_STRING);
-    $phoneNumber = filter_var($payload["phone_number"], FILTER_SANITIZE_STRING);
-    $street = filter_var($payload["street"], FILTER_SANITIZE_STRING);
-    $city = filter_var($payload["city"], FILTER_SANITIZE_STRING);
-    $zip = filter_var($payload["zip"], FILTER_SANITIZE_STRING);
-    $country = filter_var($payload["country"], FILTER_SANITIZE_STRING);
+    $user = new \WP_User($user_id);
 
-    //if (!$email) return wp_send_json_error("Invalid email", 400);
-    update_user_meta($userId, 'first_name', $firstName);
-    update_user_meta($userId, 'last_name', $lastName);
-    update_user_meta($userId, 'aa_phone_number', $phoneNumber);
-    update_user_meta($userId, 'aa_street', $street);
-    update_user_meta($userId, 'aa_city', $city);
-    update_user_meta($userId, 'aa_zip', $zip);
-    update_user_meta($userId, 'aa_country', $country);
+    if (!$user_id || !$user) return new WP_Error("rest_not_found", "Not found", ["status" => 404]);
 
+    $user_id = (int) $user_id;
+
+    if ($action === "confirm") {
+      update_user_meta($user_id, 'vize_reg_approved', 1);
+      $email = WP_Mail::init()
+      ->to($user->user_email)
+      ->from('VIZE 2030 <info@vize2030.cz>')
+      ->subject('Registrace povolena')
+      ->template(ABSPATH . 'wp-content/plugins/af-restapi/app/Sources/Email_Templates/registration_confirmed.php', [
+         "user_email"=>$user->user_email
+      ])
+      ->send();
+
+    } else if ($action === "cancel") {
+      require_once(ABSPATH.'wp-admin/includes/user.php');
+      wp_delete_user($user_id);
+    }
+    
     return new WP_REST_Response(
       ["message" => "success"],
       200
     );
   }
 
-  public function aa_get_user_list(WP_REST_Request $request)
+  public function aa_get_user_list()
   {
     global $wpdb;
     $userMetaTable = $wpdb->prefix . "usermeta";
@@ -219,10 +247,15 @@ class RestServer extends \WP_REST_Controller
              ";
     $userList = $wpdb->get_results($query);
 
-    if (empty($userList)) return new WP_Error("rest_forbidden", "Not found", ["status" => 404]);
+    if (empty($userList)) return new WP_Error("rest_not_found", "Seznam žádostí je prázdný", ["status" => 404]);
 
     foreach ($userList as &$user) {
-      $user->ID = (int) $user->ID;
+      $userId = (int) $user->user_id;
+      //$user->ID = $userId;
+      $user->first_name = (string) get_user_meta($userId, "first_name", true);
+      $user->last_name = (string) get_user_meta($userId, "last_name", true);
+      $user->department = (string) get_user_meta($userId, "vize_department", true);
+      $user->user_registered = date("d. m. Y", strtotime($user->user_registered));
     }
 
     return new WP_REST_Response(

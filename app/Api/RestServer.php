@@ -92,6 +92,18 @@ class RestServer extends \WP_REST_Controller
         ],
       ]
     );
+
+    register_rest_route(
+      $namespace,
+      "/load_counters",
+      [
+        [
+          "methods"         => "POST",
+          "callback"        => [$this, "af_get_product_counters"],
+          "permission_callback" => [$this, "af_is_user_logged_in"],
+        ]
+      ]
+    );
   }
 
   public function af_is_user_logged_in(\WP_REST_Request $request)
@@ -170,6 +182,21 @@ class RestServer extends \WP_REST_Controller
 
     return new \WP_REST_Response(
       $response,
+      200
+    );
+  }
+
+  public function af_get_product_counters(\WP_REST_Request $request)
+  {
+    $payload = $request->get_params();
+
+    if (empty($payload)) return new \WP_Error("rest_empty", "Filter properties are invalid", ["status" => 400]);
+
+    $productController = new ProductController();
+    $result = $productController->getProductCounter($payload["filterProperties"], $payload["currentFilter"]);
+
+    return new \WP_REST_Response(
+      $result,
       200
     );
   }

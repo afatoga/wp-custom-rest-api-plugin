@@ -121,4 +121,74 @@ class ProductController
         if (!$result) return null;
         return (float) $result;
     }
+
+    public function getProductCounter(array $filterProperties, array $currentFilter): array
+    {
+        $filtersToCount = [];
+        foreach($filterProperties as $dbColumnName => $value) {
+
+            foreach($value as $property) {
+                //$filtersToCount[$dbColumnName][] = $property["value"];
+
+                switch($dbColumnName) {
+                    case "colors":
+                        $where = " WHERE LOWER(`Color`) = '".strtolower($property['value'])."'";
+                        if (!empty($currentFilter['Shape'])) {
+                            $and = " AND Shape IN ('";
+                            $and .= implode("','", $currentFilter["Shape"]);
+                            $and .= "')";
+                        }
+                        if (!empty($currentFilter['Stone_name'])) {
+                            $and2 = " AND Stone_name IN ('";
+                            $and2 .= implode("','", $currentFilter["Stone_name"]);
+                            $and2 .= "')";
+                        }
+                        if (!empty($currentFilter['Set_of'])) {
+                            $and3 = " AND Set_of IN ('";
+                            $and3 .= implode("','", $currentFilter["Set_of"]);
+                            $and3 .= "')";
+                        }
+                        break;
+                    case "gemstones":
+                        $where = "WHERE LOWER(`Stone_name`) = '".strtolower($property['value'])."'";
+                        if (!empty($currentFilter['Shape'])) {
+                            $and = " AND Shape IN ('";
+                            $and .= implode("','", $currentFilter["Shape"]);
+                            $and .= "')";
+                        }
+                        if (!empty($currentFilter['Color'])) {
+                            $and2 = " AND Color IN ('";
+                            $and2 .= implode("','", $currentFilter["Stone_name"]);
+                            $and2 .= "')";
+                        }
+                        if (!empty($currentFilter['Set_of'])) {
+                            $and3 = " AND Set_of IN ('";
+                            $and3 .= implode("','", $currentFilter["Set_of"]);
+                            $and3 .= "')";
+                        }
+                        break;
+                }
+
+                $query = "SELECT COUNT(ID) 
+                        FROM af_products
+                        ".$where.$and.$and2.$and3."
+                        ";
+
+                $stmt = $this->db->prepare($query);
+                //$stmt->bindParam(":shapes", );
+                $stmt->execute();
+                $result = $stmt->fetchColumn();
+                $filtersToCount[$dbColumnName][$property["value"]] = $result;
+
+            }
+
+        }
+        
+        //count each color
+
+
+        // count each 
+        
+        return $filtersToCount;
+    }
 }

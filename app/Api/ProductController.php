@@ -128,43 +128,99 @@ class ProductController
         foreach($filterProperties as $dbColumnName => $value) {
 
             foreach($value as $property) {
-                //$filtersToCount[$dbColumnName][] = $property["value"];
+
+                $and = "";
+                $and2 = "";
+                $and3 = "";
 
                 switch($dbColumnName) {
                     case "colors":
-                        $where = " WHERE LOWER(`Color`) = '".strtolower($property['value'])."'";
+                        $where = " WHERE LOWER(`Color`) LIKE '%".strtolower($property['value'])."%' ";
                         if (!empty($currentFilter['Shape'])) {
                             $and = " AND Shape IN ('";
                             $and .= implode("','", $currentFilter["Shape"]);
-                            $and .= "')";
+                            $and .= "') ";
                         }
                         if (!empty($currentFilter['Stone_name'])) {
-                            $and2 = " AND Stone_name IN ('";
-                            $and2 .= implode("','", $currentFilter["Stone_name"]);
-                            $and2 .= "')";
+                            
+                            foreach($currentFilter["Stone_name"] as $item) {
+                                $item = strtolower($item);
+                                $and2 .= " AND LOWER(Stone_name) LIKE '%" .  $item . "%' ";
+                            }
+                            // $and2 = " AND Stone_name IN ('";
+                            // $and2 .= implode("','", $currentFilter["Stone_name"]);
+                            // $and2 .= "') ";
                         }
                         if (!empty($currentFilter['Set_of'])) {
                             $and3 = " AND Set_of IN ('";
                             $and3 .= implode("','", $currentFilter["Set_of"]);
-                            $and3 .= "')";
+                            $and3 .= "') ";
                         }
                         break;
                     case "gemstones":
-                        $where = "WHERE LOWER(`Stone_name`) = '".strtolower($property['value'])."'";
+                        $where = " WHERE LOWER(`Stone_name`) LIKE '%".strtolower($property['value'])."%' ";
                         if (!empty($currentFilter['Shape'])) {
                             $and = " AND Shape IN ('";
                             $and .= implode("','", $currentFilter["Shape"]);
                             $and .= "')";
                         }
                         if (!empty($currentFilter['Color'])) {
-                            $and2 = " AND Color IN ('";
-                            $and2 .= implode("','", $currentFilter["Stone_name"]);
-                            $and2 .= "')";
+                            
+                            foreach($currentFilter["Color"] as $item) {
+                                $item = strtolower($item);
+                                $and2 .= " AND LOWER(Color) LIKE '%" .  $item . "%' ";
+                            }
                         }
                         if (!empty($currentFilter['Set_of'])) {
                             $and3 = " AND Set_of IN ('";
                             $and3 .= implode("','", $currentFilter["Set_of"]);
-                            $and3 .= "')";
+                            $and3 .= "') ";
+                        }
+                        break;
+                    case "shapes":
+                        $where = "WHERE LOWER(`Shape`) = '".strtolower($property['value'])."'";
+                        if (!empty($currentFilter['Stone_name'])) {
+                            
+                            foreach($currentFilter['Stone_name'] as $item) {
+                                $item = strtolower($item);
+                                $and .= " AND LOWER(Stone_name) LIKE '%" .  $item . "%' ";
+                            }
+                        }
+                        if (!empty($currentFilter['Color'])) {
+                            foreach($currentFilter['Color'] as $item) {
+                                $item = strtolower($item);
+                                $and2 .= " AND LOWER(Color) LIKE '%" .  $item . "%' ";
+                            }
+                        }
+                        if (!empty($currentFilter['Set_of'])) {
+                            $and3 = " AND Set_of IN ('";
+                            $and3 .= implode("','", $currentFilter["Set_of"]);
+                            $and3 .= "') ";
+                        }
+                        break;
+                    case "sets":
+                        
+                        $where = " WHERE LOWER(`Set_of`) = '".strtolower($property['value'])."' ";
+                        if ($property['value'] === ">3") $where = "WHERE CONVERT(`Set_of`, SIGNED) > 3";
+
+                        if (!empty($currentFilter['Stone_name'])) {
+                            
+                            foreach($currentFilter["Stone_name"] as $item) {
+                                $item = strtolower($item);
+                                $and .= " AND LOWER(Stone_name) LIKE '%" .  $item . "%' ";
+                            }
+                        }
+                        if (!empty($currentFilter['Color'])) {
+                            
+                            foreach($currentFilter['Color'] as $item) {
+                                $item = strtolower($item);
+                                $and2 .= " AND LOWER(Color) LIKE '%" .  $item . "%' ";
+                            }
+                        }
+                        if (!empty($currentFilter['Shape'])) {
+                            $and3 = " AND Shape IN ('";
+                            $and3 .= implode("','", $currentFilter['Shape']);
+                            $and3 .= "') ";
                         }
                         break;
                 }
@@ -175,7 +231,6 @@ class ProductController
                         ";
 
                 $stmt = $this->db->prepare($query);
-                //$stmt->bindParam(":shapes", );
                 $stmt->execute();
                 $result = $stmt->fetchColumn();
                 $filtersToCount[$dbColumnName][$property["value"]] = $result;
